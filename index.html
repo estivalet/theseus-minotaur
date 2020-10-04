@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<title>Title Maze</title>
+<meta name="description" content="Title Maze">
+<meta name="author" content="LFEstivalet">
+<style>
+html, body {
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 21px;
+    color:black;
+    /*background: rgb(168,230,165);
+    background: radial-gradient(circle, rgba(68,130,165,1) 0%, rgba(10,74,73,1) 100%);    */
+    background: rgb(240, 240, 240);
+}
+.flex-grid {
+  display: flex;
+}
+.col {
+  flex: 1;
+}
+h2 {
+    font-size: 22px;
+    letter-spacing: 1px;
+    padding: 10px 0px 0px 0px;
+}
+.dot {
+  height: 25px;
+  width: 25px;
+  border-radius: 50%;
+  display: inline-block;
+}
+</style>
+</head>
+
+<body>
+
+<div class="flex-grid">
+    <div class="col" style="padding:10px;">
+        <h1>Theseus and the Minotaur</h1>
+        <h2>Overview</h2>        
+        <p><b>Theseus and the Minotaur</b> is a type of <a href="https://en.wikipedia.org/wiki/Logic_maze" title="Logic maze">logic maze</a> designed by <a href="https://en.wikipedia.org/wiki/Robert_Abbott_(game_designer)" title="Robert Abbott (game designer)">Robert Abbott</a>. In this maze, the player acts as <a href="https://en.wikipedia.org/wiki/Theseus" title="Theseus">Theseus</a>, the king of Athens who is attempting to escape the <a href="https://en.wikipedia.org/wiki/Labyrinth" title="Labyrinth">Labyrinth</a>. The main difference between this and the standard type of labyrinth, beyond the fact that it is set on a <a href="https://en.wikipedia.org/wiki/Grid_(spatial_index)" title="Grid (spatial index)">grid</a>, is the fact that the maze is not empty, but also contains a <a href="https://en.wikipedia.org/wiki/Minotaur" title="Minotaur">Minotaur</a> who hunts the player down, taking two steps for every one the player takes.
+        </p>
+        <!--p>While the Minotaur is faster than the player, his moves are predictable and often inefficient: they are determined by checking to see if he can get closer to the player by moving <a href="https://en.wikipedia.org/wiki/Horizontal_plane" class="mw-redirect" title="Horizontal plane">horizontally</a>, then checking to see if he can get any closer by moving vertically. If neither move would place him closer to the player, the Minotaur skips his turn. Theseus may also skip his turn.</p-->
+        <p>This type of maze was first published in 1990 in Robert Abbott's book <i>Mad Mazes</i>. The idea was later published in the British magazine <i>Games &amp; Puzzles</i>.
+        </p>    
+        <p><span class="dot" style="  background-color: #FFD700;"></span> Theseus</p>
+        <p><span class="dot" style="  background-color: #FF6347;"></span> Minotaur</p>
+        <p><span class="dot" style="  background-color: #3CB371;"></span> Exit</p>
+        <img src="image.png" width="85%"/>
+            
+            
+        </p>                    
+    </div>
+    <div class="col">
+        <canvas id="canvas" width="922" height="922" style="margin-left: auto; margin-right: auto; display: block; border:5px solid black">
+            Your browser does not support the HTML5 canvas tag.
+        </canvas>    
+        <p>Javascript version by L.F.Estivalet - October 2020</p>
+    </div>
+    <div class="col" style="padding:10px;">
+        <h1>Theseus and the Minotaur</h1>
+        <h2>Instructions</h2>        
+        <p>First, click on the diagram to get the program started. Then, use the arrow keys to move Theseus (the red circle). The idea is to get Theseus to the exit without him being eaten by the Minotaur (the black circle). For each move that Theseus makes, the Minotaur makes two moves. He always tries to get closer to Theseus. It he can move one square horizontally and get closer, he will do that. If he can’t move horizontally, then he will try to move vertically.</p>
+        <p>The key to solving these mazes is to realize that the Minotaur follows a rigid program. He doesn’t do what you would do if you were a Minotaur. He doesn’t look ahead more than one turn. And, most importantly, he will choose a horizontal move before a vertical move.</p>
+        <p>The first three mazes are just training mazes, then 4 through 10 get to be interesting.</p>
+        <p>Big hint for maze 1: move left, then move right.</p>   
+        <p>Hint for maze 2: go right 4, up 1, down 3, left 1.</p>    
+        <p>Hint for maze 3: at one point Theseus must wait. To do this, type W.</p>
+        <p><b>UP ARROW</b> - Move Theseus up</p>    
+        <p><b>DOWN ARROW</b> - Move Theseus down</p>    
+        <p><b>RIGHT ARROW</b> - Move Theseus right</p>    
+        <p><b>LEFT ARROW</b> - Move Theseus left</p>    
+        <p><b>W</b> - Make Theseus wait and lose the round</p>    
+        <p><b>N</b> - Next level</p>    
+        <p><b>P</b> - Previous level</p>    
+        <p><b>R</b> - Restart current level</p>    
+    </div>
+</div>    
+
+
+<script>
+/**
+ * The grid string encoding is the following:
+ * 
+ * <pre>
+ * (0,1) - theseus "x" and "y" position in the grid. 
+ * (2,3) - minotaur "x" and "y" position in the grid.
+ * (4,5) - exit "x" and "y" position in the grid.
+ * (x,y,z) - "x" and "y" position in the grid where "z" will be drawn. 
+ *           "z" can have the following values:
+ *           - "1" - draw wall horizontally
+ *           - "2" - draw wall vertically
+ *           - "3" - draw wall horizontally and vertically.
+ * </pre>
+ * 
+ * Based on http://www.logicmazes.com/theseus.html
+ * 
+ * @author LFEstivalet
+ * 
+ */
+
+"use strict";
+
+let canvas;
+let context;
+
+let fps;
+let secondsPassed = 0;
+let oldTimeStamp = 0;
+let clock = 50;
+
+let space = false;
+let left = false;
+let right = false;
+let up = false;
+let down = false;
+let keyN = false;
+let keyP = false;
+let keyR = false;
+let keyW = false;
+
+const GRID_SIZE_X = 16;
+const GRID_SIZE_Y = 16;
+const CELL_SIZE = 32;
+
+const DIRX = [ -1, 1, 0, 0, 0 ];
+const DIRY = [ 0, 0, -1, 1, 0 ];
+
+let running = false;
+let lost = false;
+let win = false;
+let restart = false;
+
+let move = false;
+let theseusMoveIsCompleted = false;
+let mmove = false;
+let minotaurMoves = 2;
+
+
+let theseusX;
+let theseusY;
+let minotaurX;
+let minotaurY;
+let exitX;
+let exitY;
+let tx;
+let ty;
+let mx;
+let my;
+
+let incx = 0;
+let incy = 0;
+let incmx = 0;
+let incmy = 0;
+
+function arr (arg, def = 0){
+    if (arg.length > 2){
+        return Array(arg[0]).fill().map(()=>arr(arg.slice(1)));
+    } else {
+        return Array(arg[0]).fill().map(()=>Array(arg[1]).fill(def));
+    }
+}
+
+let grid = arr([GRID_SIZE_X,GRID_SIZE_Y]);
+let blockedGrid = arr([GRID_SIZE_X,GRID_SIZE_Y,GRID_SIZE_X,GRID_SIZE_Y]);
+
+const LEVELS = [
+			"7;4;7;6;9;5;6;4;3;6;5;2;6;6;2;6;7;1;7;4;1;7;5;1;7;6;1;7;7;1;8;4;1;8;5;2;8;7;1;9;4;2;9;5;1;9;6;3;",
+			"6;5;4;5;5;8;4;4;3;4;5;2;4;6;2;4;7;2;4;8;1;5;4;1;5;5;2;5;6;1;5;8;2;6;4;1;6;5;2;6;8;3;7;4;1;7;8;1;8;4;1;8;8;1;9;4;1;9;6;2;9;7;1;9;8;1;10;4;1;10;6;2;10;8;1;11;4;2;11;5;2;11;6;2;11;7;2;",
+			"7;5;7;4;9;5;6;4;3;6;5;2;6;6;2;6;7;3;6;8;1;7;4;1;7;5;1;7;6;2;7;8;1;8;4;1;8;8;1;9;4;2;9;5;1;9;6;3;9;7;2;",
+			"6;3;9;4;8;2;5;3;3;5;4;2;5;5;2;5;6;2;5;7;2;5;8;1;6;3;3;6;5;1;6;6;1;6;8;1;7;3;1;7;4;2;7;6;1;7;8;1;8;2;2;8;4;1;8;5;2;8;6;2;8;7;1;8;8;1;9;2;2;9;3;1;9;4;2;9;6;2;9;8;1;10;3;2;10;4;2;10;5;2;10;6;2;10;7;2;",
+			"6;4;6;7;9;3;4;4;3;4;5;2;4;6;2;4;7;2;4;8;2;4;9;1;5;4;1;5;5;2;5;6;1;5;9;1;6;4;1;6;7;3;6;8;1;6;9;1;7;4;1;7;6;2;7;8;1;7;9;1;8;4;3;8;5;2;8;7;2;8;8;1;8;9;1;9;3;2;9;5;1;9;6;1;9;7;3;9;9;1;10;3;2;10;4;3;10;6;2;10;9;1;11;4;2;11;5;2;11;6;2;11;7;2;11;8;2;",
+			"4;4;8;6;8;3;4;4;3;4;5;3;4;6;2;4;7;2;4;8;2;4;9;2;4;10;1;5;4;1;5;6;3;5;7;2;5;8;2;5;10;1;6;4;1;6;5;2;6;6;2;6;7;1;6;8;3;6;10;1;7;4;1;7;6;2;7;10;1;8;3;2;8;5;2;8;6;1;8;7;3;8;10;1;9;3;2;9;4;3;9;5;2;9;10;1;10;4;2;10;5;2;10;6;2;10;7;2;10;8;2;10;9;2;",
+			"10;7;6;7;7;2;6;3;3;6;4;2;6;5;2;6;6;2;6;7;3;6;8;2;6;9;1;7;2;2;7;4;1;7;6;2;7;9;1;8;2;2;8;3;1;8;8;1;8;9;1;9;3;1;9;4;2;9;5;2;9;9;1;10;3;1;10;4;1;10;5;1;10;6;2;10;7;1;10;9;1;11;3;3;11;5;2;11;6;2;11;7;2;11;9;1;12;3;2;12;4;2;12;5;2;12;6;2;12;7;2;12;8;2;",
+			"4;5;6;7;5;13;4;5;3;4;6;3;4;7;2;4;8;2;4;9;3;4;10;2;4;11;2;4;12;2;4;13;1;5;5;1;5;6;1;5;7;2;5;8;1;5;9;2;5;11;3;5;12;2;5;13;2;6;5;1;6;6;2;6;7;1;6;8;2;6;9;2;6;10;3;6;11;2;6;13;3;7;5;1;7;6;2;7;7;2;7;8;2;7;9;1;7;11;1;7;12;1;7;13;1;8;5;3;8;6;2;8;8;1;8;10;3;8;11;2;8;13;1;9;5;1;9;6;2;9;7;2;9;8;3;9;9;2;9;10;1;9;11;2;9;12;1;9;13;1;10;5;3;10;6;2;10;8;1;10;9;1;10;10;1;10;11;1;10;12;3;10;13;1;11;5;1;11;6;1;11;7;3;11;9;1;11;10;1;11;11;1;11;12;1;11;13;1;12;5;1;12;6;2;12;9;1;12;11;1;12;13;1;13;5;2;13;6;2;13;7;2;13;8;2;13;9;2;13;10;2;13;11;2;13;12;2;",
+			"13;5;5;5;8;4;5;5;3;5;6;3;5;7;2;5;8;2;5;9;2;5;10;2;5;11;2;5;12;2;5;13;1;6;5;1;6;6;1;6;8;2;6;9;3;6;10;2;6;13;1;7;5;1;7;13;1;8;4;2;8;8;3;8;12;1;8;13;1;9;4;2;9;5;1;9;8;2;9;13;1;10;5;1;10;6;1;10;13;1;11;5;1;11;13;1;12;5;1;12;10;1;12;13;1;13;5;1;13;8;2;13;9;2;13;10;2;13;11;2;13;13;1;14;5;2;14;6;2;14;7;2;14;8;2;14;9;2;14;10;2;14;11;2;14;12;2;",
+			"6;6;5;5;4;5;4;5;1;4;6;1;5;5;1;5;6;2;5;7;2;5;8;2;5;9;2;5;10;2;5;11;3;5;12;3;5;13;1;6;5;3;6;9;1;6;10;2;6;13;1;7;5;1;7;10;2;7;11;2;7;13;1;8;5;1;8;9;2;8;13;1;9;5;1;9;8;2;9;11;2;9;12;1;9;13;1;10;5;1;10;6;1;10;7;2;10;9;1;10;12;2;10;13;1;11;5;1;11;10;2;11;11;1;11;13;1;12;5;1;12;6;3;12;13;1;13;5;2;13;6;2;13;7;2;13;8;2;13;9;2;13;10;2;13;11;2;13;12;2;" ];
+let currentLevel = 0;
+
+
+window.onload = init;
+
+function init(){
+    window.addEventListener("keydown", keyListener, false);
+    canvas = document.getElementById('canvas');
+    context = canvas.getContext('2d');
+    window.requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(timeStamp) {
+    secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+    secondsPassed = Math.min(secondsPassed, 0.1);
+    oldTimeStamp = timeStamp;
+
+    fps = Math.round(1 / secondsPassed);
+
+    update(secondsPassed);
+    draw(fps);
+
+    window.requestAnimationFrame(gameLoop);
+}
+
+function draw(fps) {
+    context.fillStyle = "lightgray";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.save();
+    context.scale(1.8, 1.8);
+
+    context.beginPath();
+    context.strokeStyle = 'darkcyan';
+    // Draw horizontal lines.
+    for (var y = 0; y <= GRID_SIZE_Y; y++) {
+        context.moveTo(0, y * CELL_SIZE);
+        context.lineTo(CELL_SIZE * GRID_SIZE_X, y * CELL_SIZE);
+    }
+    for (var x = 0; x <= GRID_SIZE_X; x++) {
+        context.moveTo(x * CELL_SIZE, 0);
+        context.lineTo(x * CELL_SIZE, + CELL_SIZE * GRID_SIZE_Y);
+    }
+    context.stroke();
+
+    context.beginPath();
+    context.font = "20px Georgia";
+    context.fillStyle = (clock < 25 ? '#000' : '#3CB371');
+    var x = exitX * CELL_SIZE;
+    var y = exitY * CELL_SIZE;
+    context.fillText("E", x + 10, y + CELL_SIZE - CELL_SIZE/4);
+
+    context.beginPath();
+    context.fillStyle = '#FFD700';
+    context.arc(tx + CELL_SIZE/2, ty + CELL_SIZE/2, CELL_SIZE/4, 0, 2 * Math.PI);
+    context.fill();
+    context.beginPath();
+    context.fillStyle = '#000';
+    context.arc(tx + CELL_SIZE/2-2, ty + CELL_SIZE/2-2, CELL_SIZE/32, 0, 2 * Math.PI);
+    context.arc(tx + CELL_SIZE/2+2, ty + CELL_SIZE/2-2, CELL_SIZE/32, 0, 2 * Math.PI);
+    context.fill();
+    context.beginPath();
+    context.strokeStyle = '#000';
+    context.arc(tx + CELL_SIZE/2, ty + CELL_SIZE/2+2, CELL_SIZE/16, 0, Math.PI);
+    context.stroke();
+
+    context.beginPath();
+    context.fillStyle = '#FF6347';
+    context.arc(mx + CELL_SIZE/2, my + CELL_SIZE/2, CELL_SIZE/4, 0, 2 * Math.PI);
+    context.fill();
+    context.beginPath();
+    context.fillStyle = '#000';
+    context.arc(mx + CELL_SIZE/2-2, my + CELL_SIZE/2-2, CELL_SIZE/32, 0, 2 * Math.PI);
+    context.arc(mx + CELL_SIZE/2+2, my + CELL_SIZE/2-2, CELL_SIZE/32, 0, 2 * Math.PI);
+    context.fill();
+    context.beginPath();
+    context.strokeStyle = '#000';
+    context.arc(mx + CELL_SIZE/2, my + CELL_SIZE/2+4, CELL_SIZE/16, Math.PI, 0);
+    context.moveTo(mx + CELL_SIZE/2-7, my + CELL_SIZE/2-7);
+    context.lineTo(mx + CELL_SIZE/2, my + CELL_SIZE/2-3);
+    context.lineTo(mx + CELL_SIZE/2+7, my + CELL_SIZE/2-7);
+    context.stroke();
+
+
+    context.beginPath();
+    context.strokeStyle = '#000';
+    context.fillStyle = "#000";
+
+    // Draw grid data.
+    for (var x = 0; x < GRID_SIZE_X; x++) {
+        for (var y = 0; y < GRID_SIZE_Y; y++) {
+            var data = grid[x][y];
+            if ((data & 0x2) != 0) {
+                // Draw vertical wall.
+                context.roundRect(x * CELL_SIZE, y * CELL_SIZE, 5, CELL_SIZE,100);
+            }
+            if ((data & 0x1) != 0) {
+                // Draw horizontal wall.
+                context.roundRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, 5,100);
+            }
+        }
+    }
+    context.fill();
+
+    if(!running) {
+        context.beginPath();
+        context.fillStyle = "#000";
+        context.font = "20px Georgia";
+        if(lost) {
+            context.fillRect(100, 420, 300, 50);
+            context.fillStyle = "red";
+            context.fillText("LOST - MINOTAUR GOT YOU!", 115, 450);
+        } else if(win) {
+            context.fillRect(100, 420, 300, 50);
+            context.fillStyle = "green";
+            context.fillText("WIN - YOU HAVE ESCAPED!", 115, 450);
+        } else {
+            context.fillRect(75, 150, 330, 50);
+            context.fillRect(95, 350, 300, 50);
+            context.fillStyle = "yellow";
+            context.fillText("THESEUS AND THE MINOTAUR", 90, 180);
+            context.fillText("PRESS <SPACE> TO BEGIN", 120, 380);
+        }
+    } else {
+        context.fillStyle = "#000";
+        context.fillText("LEVEL: " + (currentLevel + 1), 10, 50);
+    }
+
+    context.restore();
+}
+
+function canMove(x, y, nx, ny) {
+    if (nx < 0 || nx >= GRID_SIZE_X) {
+        return false;
+    }
+    if (ny < 0 || ny >= GRID_SIZE_Y) {
+        return false;
+    }
+    if (x < 0 || x >= GRID_SIZE_X) {
+        return false;
+    }
+    if (y < 0 || y >= GRID_SIZE_Y) {
+        return false;
+    }
+    //debugger;
+
+    return !blockedGrid[x][y][nx][ny];
+}
+
+function block(x, y, pos) {
+    var nx = x + DIRX[pos];
+    var ny = y + DIRY[pos];
+    if (x >= 0 && y >= 0 && x < GRID_SIZE_X && y < GRID_SIZE_Y && nx >= 0
+            && ny >= 0 && nx < GRID_SIZE_X && ny < GRID_SIZE_Y) {
+        blockedGrid[x][y][nx][ny] = true;
+        blockedGrid[nx][ny][x][y] = true;
+    }
+}
+
+function update(secondsPassed) {
+	if ((space && !running) || restart) {
+        console.log('start');
+        running = true;
+        restart = false;
+        if (lost) {
+            lost = false;
+        } else if (win) {
+            win = false;
+        }
+
+        // Decode grid start.
+        for (var i = 0; i < GRID_SIZE_X; i++) {
+            for (var j = 0; j < GRID_SIZE_Y; j++) {
+                grid[i][j] = 0;
+            }
+        }
+
+        // Grid data is separated by ";".
+        var data = LEVELS[currentLevel].split(';');
+
+        // First is theseus x position.
+        theseusX = parseInt(data[0]);
+        tx = theseusX * CELL_SIZE;
+
+        // Next is theseus y position.
+        theseusY = parseInt(data[1]);
+        ty = theseusY * CELL_SIZE;
+
+        // Next is minotour x position.
+        minotaurX = parseInt(data[2]);
+        mx = minotaurX * CELL_SIZE;
+
+        // Next is minotour y position.
+        minotaurY = parseInt(data[3]);
+        my = minotaurY * CELL_SIZE;
+
+        // Next is exit x position.
+        exitX = parseInt(data[4]);
+
+        // Next is exit y position.
+        exitY = parseInt(data[5]);
+
+        // Now decode grid data.
+        for(var i=6; i < data.length-3; i+=3) {
+            // Grid wall x position.
+            var x = parseInt(data[i]);
+
+            // Grid wall y position.
+            var y = parseInt(data[i+1]);
+
+            // Grid wall data.
+            var wall = parseInt(data[i+2]);
+            grid[x][y] = wall;
+        }
+
+        blockedGrid = arr([GRID_SIZE_X,GRID_SIZE_Y,GRID_SIZE_X,GRID_SIZE_Y]);
+        for (var x = 0; x < GRID_SIZE_X; x++) {
+            for (var y = 0; y < GRID_SIZE_Y; y++) {
+                if ((grid[x][y] & 0x2) != 0) {
+                    block(x, y, 0);
+                }
+                if ((grid[x][y] & 0x1) != 0) {
+                    block(x, y, 2);
+                }
+            }
+        }
+
+    }
+
+    if (running && !lost && !win) {
+        clock--;
+        if (clock < 0) {
+            clock = 50;
+        }
+        // Logic stuff goes here.
+        if (!move && !theseusMoveIsCompleted) {
+            if (right) {
+                //debugger;
+                if (canMove(theseusX, theseusY, theseusX + 1, theseusY)) {
+                    right = false;
+                    move = true;
+                    incx = 1;
+                    theseusX++;
+                }
+            } else if (left) {
+                if (canMove(theseusX - 1, theseusY, theseusX, theseusY)) {
+                    left = false;
+                    move = true;
+                    incx = -1;
+                    theseusX--;
+                }
+            } else if (up) {
+                if (canMove(theseusX, theseusY, theseusX, theseusY - 1)) {
+                    up = false;
+                    move = true;
+                    incy = -1;
+                    theseusY--;
+                }
+            } else if (down) {
+                if (canMove(theseusX, theseusY, theseusX, theseusY + 1)) {
+                    down = false;
+                    move = true;
+                    incy = 1;
+                    theseusY++;
+                }
+            } else if (keyN) {
+                keyN = false;
+                if (currentLevel < LEVELS.length - 1) {
+                    currentLevel++;
+                    restart = true;
+                }
+            } else if (keyP) {
+                keyP = false;
+                if (currentLevel > 0) {
+                    currentLevel--;
+                    restart = true;
+                }
+            } else if (keyR) {
+                keyR = false;
+                restart = true;
+            } else if (keyW) {
+                keyW = false;
+                theseusMoveIsCompleted = true;
+            }
+        }
+
+        if (move) {
+            // Theseus
+            tx += incx;
+            ty += incy;
+
+            var posx = Math.floor(tx / CELL_SIZE);
+            var posy = Math.floor(ty / CELL_SIZE);
+
+            if (incx < 0) {
+                posx++;
+            }
+            if (incy < 0) {
+                posy++;
+            }
+
+            if (incx != 0) {
+                if (posx == theseusX) {
+                    //debugger;
+                    move = false;
+                    theseusMoveIsCompleted = true;
+                    incx = 0;
+                }
+            }
+            if (incy != 0) {
+                if (posy == theseusY) {
+                    move = false;
+                    theseusMoveIsCompleted = true;
+                    incy = 0;
+                }
+            }
+
+            // Check if theseus found the exit.
+            if (theseusMoveIsCompleted && theseusX == exitX && theseusY == exitY) {
+                win = true;
+                running = false;
+                if (currentLevel < LEVELS.length - 1) {
+                    currentLevel++;
+                }
+            }
+
+            // Check if minotaur catched theseus.
+            if (theseusMoveIsCompleted && minotaurX == theseusX && minotaurY == theseusY && !win) {
+                lost = true;
+                running = false;
+            }
+
+        }
+
+        // Minotaur move.
+        if (theseusMoveIsCompleted) {
+            //return;
+            if (!mmove) {
+                if (minotaurX > theseusX && canMove(minotaurX, minotaurY, minotaurX - 1, minotaurY)) {
+                    minotaurX--;
+                    incmx = -1;
+                    mmove = true;
+                } else if (minotaurX < theseusX && canMove(minotaurX, minotaurY, minotaurX + 1, minotaurY)) {
+                    minotaurX++;
+                    incmx = 1;
+                    mmove = true;
+                } else if (minotaurY > theseusY && canMove(minotaurX, minotaurY, minotaurX, minotaurY - 1)) {
+                    minotaurY--;
+                    incmy = -1;
+                    mmove = true;
+                } else if (minotaurY < theseusY && canMove(minotaurX, minotaurY, minotaurX, minotaurY + 1)) {
+                    minotaurY++;
+                    incmy = 1;
+                    mmove = true;
+                }
+
+                // If minotaur was not able to make any move, let
+                // theseu move again and reset minotaur moves.
+                if (!mmove) {
+                    theseusMoveIsCompleted = false;
+                    minotaurMoves = 2;
+                }
+            } else {
+                mx += incmx;
+                my += incmy;
+
+                var posmx = Math.floor(mx / CELL_SIZE);
+                var posmy = Math.floor(my / CELL_SIZE);
+                if (incmx < 0) {
+                    posmx++;
+                }
+                if (incmy < 0) {
+                    posmy++;
+                }
+
+                if (incmx != 0) {
+                    if (posmx == minotaurX) {
+                        mmove = false;
+                        minotaurMoves--;
+                        if (minotaurMoves == 0) {
+                            theseusMoveIsCompleted = false;
+                            minotaurMoves = 2;
+                        }
+                        incmx = 0;
+                    }
+                }
+                if (incmy != 0) {
+                    if (posmy == minotaurY) {
+                        mmove = false;
+                        minotaurMoves--;
+                        if (minotaurMoves == 0) {
+                            theseusMoveIsCompleted = false;
+                            minotaurMoves = 2;
+                        }
+                        incmy = 0;
+                    }
+                }
+
+                // Check if minotaur catched theseus.
+                if (!mmove && minotaurX == theseusX && minotaurY == theseusY && !win) {
+                    lost = true;
+                    running = false;
+                }
+            }
+        }
+    }    
+}
+
+function keyListener(e) {
+    space = false;
+    left = false;
+    right = false;
+    up = false;
+    down = false;
+    keyN = false;
+    keyP = false;
+    keyR = false;
+    keyW = false;
+    switch(e.keyCode) {
+        case 32:
+            space = true;
+            break;
+        case 37:
+            left = true;
+            break;
+        case 38:
+            up = true;
+            break;
+        case 39:
+            right = true;
+            break;
+        case 40:
+            down = true;
+            break;  
+        case 78:
+            keyN = true;
+            break;
+        case 80:
+            keyP = true;
+            break;
+        case 82:
+            keyR = true;
+            break;
+        case 87:
+            keyW = true;
+            break;
+    }   
+}  
+
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  //this.beginPath();
+  this.moveTo(x+r, y);
+  this.arcTo(x+w, y,   x+w, y+h, r);
+  this.arcTo(x+w, y+h, x,   y+h, r);
+  this.arcTo(x,   y+h, x,   y,   r);
+  this.arcTo(x,   y,   x+w, y,   r);
+  //this.closePath();
+  //return this;
+}
+</script>
+
+
+<!--
+Solution to maze 10   
+ 	
+Note, June 3, 2011:  Recently I spent an afternoon playing these mazes. I hadn’t looked at them in over ten years, so I had forgotten most of the solutions. One of the perks of getting old and forgetful is you can enjoy solving certain puzzles, even puzzles you had solved in the past.
+
+I had a pleasant time solving mazes 1 through 9, but then I got to maze 10 and really got stuck. It took me about an hour and a half to solve. I realized that it’s not a good idea to have a maze of this difficulty in an introductory set of mazes; so I thought I should give the solution here.
+
+By the way, I looked up in my old notes and saw that the layout for maze 10 was created by Toby Nelson. I found that to be a relief. If I had created maze 10 and couldn’t solve it, then that would be worse than just being old and forgetful. It would mean I was ready for “The Home.”
+ 
+
+Here then is the solution: up 1, right 5, down 4, left 1, down 2, right 1, delay. The Minotaur is now trapped in a semi-cup near the right side of the board.
+
+Next we go: left 2, up 1, left 2, up 1, left 2, up 1, down 1, right 1, down 3, left 1, delay. The Minotaur is now in a semi-cup on the left edge of the board.
+
+Next we go back to that semi-cup near the right side of the board: right 3, up 2, right 2, down 1, right 2, up 2, down 2, delay, up 1.
+
+The board will now look like the diagram at the right.
+
+
+
+All we have to do now, is move left 1, the Minotaur will also move left 1 and will become trapped under the bar.
+
+Those last several moves, which took us from the left side of the board to the right side, were very tricky. The route was tricky, and the timing of what happened, was also tricky. You’ll notice there was one delay in the middle of the action. That delay was crucial. I could never explain what went on here, and I don’t even fully understand it.
+
+I hope you go on to solve more of these Theseus layouts, and if you do, you’ll probably run into more problems like this. You’ll see a place where you could trap the Minotaur, but you can’t seem to get him there at the right time. If you keep trying different routes, you might come up with something that works. And remember, you can use delay at various points.
+
+Just to finish the solution: We have Theseus in that semi-cup and the Minotaur is under the cup. Theseus goes up 5 and right 1. He then delays 2 times, goes left 6, down 1, left 1, up 1, left 1, and he is out.    
+-->
